@@ -24,8 +24,8 @@ class Customer(Base):
 class Account(Base):
     __tablename__ = "accounts"
 
-    account_number = Column(String(20), primary_key=True, autoincrement=True)
-    crn = Column(String(20), ForeignKey('customers.crn'), unique=True, nullable=False)
+    account_number = Column(Integer, primary_key=True, autoincrement=True)
+    crn = Column(Integer, ForeignKey('customers.crn'), unique=True, nullable=False)
     balance = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
