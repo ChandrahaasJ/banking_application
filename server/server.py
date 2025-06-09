@@ -1,13 +1,24 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from banking_application.controllers.control import Database
-from banking_application.models.DB_Schemas import Account
+from banking_application.models.DB_Schemas import Account, Address
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
 db = Database()
 
 # Pydantic models for request validation
@@ -34,14 +45,29 @@ class BalanceUpdate(BaseModel):
 @app.post("/create_user")
 async def create_user(user: UserCreate):
     try:
+        print(f"Received user data: {user.dict()}")  # Log the received data
         customer = db.create_user(
             name=user.name,
             city=user.city,
             state=user.state,
             zip_code=user.zip_code
         )
-        return {"message": "User created successfully", "crn": customer.crn}
+        # Verify the address was created
+        address = db.session.query(Address).filter(Address.crn == customer.crn).first()
+        if not address:
+            raise HTTPException(status_code=500, detail="Failed to create initial address")
+            
+        return {
+            "message": "User created successfully", 
+            "crn": customer.crn,
+            "address": {
+                "city": address.city,
+                "state": address.state,
+                "zip_code": address.zip_code
+            }
+        }
     except Exception as e:
+        print(f"Error creating user: {str(e)}")  # Log the error
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/add_address")
@@ -104,6 +130,21 @@ async def get_customer_accounts(crn: int):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/account/{account_number}/balance")
+async def get_account_balance(account_number: int):
+    try:
+        account = db.session.query(Account).filter(Account.account_number == account_number).first()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+        
+        return {
+            "account_number": account.account_number,
+            "balance": account.balance,
+            "last_updated": account.last_updated
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 # Cleanup when the application shuts down
 # @app.on_event("shutdown")
 # async def shutdown_event():
@@ -112,4 +153,5 @@ async def get_customer_accounts(crn: int):
 
 if __name__ == "__main__":
     import uvicorn
+    
     uvicorn.run(app, host="0.0.0.0", port=8000)

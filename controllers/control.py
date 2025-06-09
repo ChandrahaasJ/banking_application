@@ -17,12 +17,17 @@ class Database:
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
-    def create_user(self, name,city, state, zip_code):
-        """Create a new customer"""
+    def create_user(self, name, city, state, zip_code):
+        """Create a new customer with their initial address"""
         try:
+            # Start a new transaction
+            self.session.begin_nested()
             customer = Customer(name=name)
             self.session.add(customer)
+            #self.session.flush()  # This gets us the customer's CRN without committing
+            # Commit both customer one transaction
             self.session.commit()
+            self.session.begin_nested()
             address = Address(
                 crn=customer.crn,
                 city=city,
@@ -30,6 +35,13 @@ class Database:
                 zip_code=zip_code
             )
             self.session.add(address)
+            self.session.commit()
+            
+            # Verify the address was created
+            created_address = self.session.query(Address).filter(Address.crn == customer.crn).first()
+            if not created_address:
+                raise Exception("Failed to create initial address")
+                
             return customer
         except Exception as e:
             self.session.rollback()
