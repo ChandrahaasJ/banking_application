@@ -3,14 +3,14 @@ from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
 Base = declarative_base()
- 
+  
 class Customer(Base):
     __tablename__ = "customers"
 
     crn = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     #account_number = Column(String(20), unique=True, nullable=False)
-    address = Column(String(200))
+    #address = Column(String(200))
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationship with Account
