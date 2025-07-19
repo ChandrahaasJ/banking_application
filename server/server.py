@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from banking_application.controllers.control import Database
 from banking_application.models.DB_Schemas import Account, Address
 #testing
